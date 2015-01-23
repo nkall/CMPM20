@@ -20,6 +20,45 @@ GameState.prototype.drawSprites = function (image, context){
 	}
 }
 
+GameState.prototype.handleDragging = function (e){
+	if (this.isClicking){
+		// If sprite overlaps mouse, move sprite center to mouse location
+		for (var i = 0; i < this.spriteList.length; i++) {
+			mouseCoords = new Coordinates(e.clientX, e.clientY);
+			if (this.spriteList[i].containsPoint(mouseCoords)){
+				//Offset coordinates for proper centered dragging
+				offset = (this.spriteList[i].poke.spriteLen) / 2
+				mouseCoords.posX = mouseCoords.posX - offset;
+				mouseCoords.posY = mouseCoords.posY - offset;
+				this.spriteList[i].coords = mouseCoords;
+				break;  //Don't want to drag multiple sprites at once
+			}
+		}
+	}
+}
+
+// Checks for any sprite overlaps and transforms Pokemen if they are different enough
+GameState.prototype.handleOverlaps = function (){
+	for (var i = 0; i < this.spriteList.length; i++) {
+		for (var j = i + 1; j < this.spriteList.length; j++) {
+			// To merge, sprites must overlap and be more than one Pokedex number apart
+			if (this.spriteList[i].overlapsSprite(this.spriteList[j]) &&
+			    (this.spriteList[i].poke.pokedexNo > this.spriteList[j].poke.pokedexNo + 1 ||
+				 this.spriteList[j].poke.pokedexNo > this.spriteList[i].poke.pokedexNo + 1 )){
+					// Remove old sprites, after saving them in temp variables
+					var s1 = this.spriteList[i];
+					var s2 = this.spriteList[j];
+					this.spriteList = this.spriteList.splice(i, 1);
+					this.spriteList = this.spriteList.splice(j, 1);
+
+					// Insert new sprite, average of the old ones' pokedex nums
+					this.appendSprite(s1.combineWith(s2, this.pokeList));
+
+					return; // Need to break out to avoid "chain reaction"
+			}
+		}
+	}
+}
 
 
 function Sprite (poke, coords){
@@ -37,12 +76,35 @@ Sprite.prototype.containsPoint = function (point){
 	return false;
 }
 
+// Returns true if one sprite overlaps another
+Sprite.prototype.overlapsSprite = function (spr){
+	len = spr.poke.spriteLen;
+	// Left, right, and bottom left and right corners of testing sprite
+	lc = spr.coords;
+	rc = new Coordinates(spr.coords.posX + len, spr.coords.posY);
+	blc = new Coordinates(spr.coords.posX, spr.coords.posY + len);
+	brc = new Coordinates(spr.coords.posX + len, spr.coords.posY + len);
+
+	if (this.containsPoint(lc) || this.containsPoint(rc) ||
+		this.containsPoint(blc) || this.containsPoint(brc)){
+		return true;
+	}
+	return false;
+}
+
 Sprite.prototype.drawSprite = function (image, context){
 	//Variables for brevity
 	p = this.poke;
 	s = p.spriteLen;
 	context.drawImage(image, p.clipCoords.posX, p.clipCoords.posY, s, s, 
 					  this.coords.posX, this.coords.posY, s, s);
+}
+
+// Combines two sprites together and returns a new one.  The pokedex number
+// of the new sprite is the average of the old two.
+Sprite.prototype.combineWith = function (spr, pokeList){
+	var newPokeIndex = Math.floor(((this.poke.pokedexNo + spr.poke.pokedexNo - 2) / 2));
+	return (new Sprite(pokeList[newPokeIndex], this.coords));
 }
 
 
@@ -69,7 +131,7 @@ function splitSprites(spriteAmt, spriteLen, columns){
 		clipX = spriteLen * (i % columns);
 		clipY = spriteLen * Math.floor((i / columns));
 		clipCoords = new Coordinates(clipX, clipY);
-		pokemen[pokemen.length] = new Pokemon("Unknown", i+1, spriteLen, clipCoords);
+		pokemen[pokemen.length] = new Pokemon(pokeNames[i], i+1, spriteLen, clipCoords);
 	}
 	return pokemen;
 }
@@ -80,21 +142,7 @@ function gameLoop(state, context, bgImg, img, pokemen){
 	state.drawSprites(img, context);
 }
 
-function handleDragging (e, state){
-	if (!state.isClicking){
-		return state;
-	}
 
-	for (var i = 0; i < state.spriteList.length; i++) {
-		if (state.spriteList[i].containsPoint){
-			offset = (state.spriteList[i].poke.spriteLen) / 2
-			state.spriteList[i].coords = new Coordinates(e.clientX - offset, 
-														 e.clientY - offset);
-			return state;
-		}
-	}
-	return state;
-}
 
 
 $(window).ready(function(){
@@ -110,9 +158,10 @@ $(window).ready(function(){
 	}, false);
 	canvas.addEventListener("mouseup", function(){
 		state.isClicking = false;
+		state.handleOverlaps();
 	}, false);
 	canvas.addEventListener("mousemove", function(e){
-		state = handleDragging(e, state);
+		state.handleDragging(e);
 	}, false);
 
 	// Set up images that will be used
@@ -124,8 +173,11 @@ $(window).ready(function(){
 	//Once images are loaded, start game loop
 	bgImg.onload = function() {
     	img.onload = function() {
-    		spr = new Sprite(pokemen[Math.round(Math.random()*150)], new Coordinates(0,0));
-			state.appendSprite(spr);
+    		// Start with Bulbasaur and Mew, the ends of the scale
+    		bulb = new Sprite(pokemen[0], new Coordinates(50,275));
+    		mew = new Sprite(pokemen[150], new Coordinates(450,275));
+			state.appendSprite(bulb);
+			state.appendSprite(mew);
 
     		window.setInterval(function() {
  				gameLoop(state, context, bgImg, img, pokemen);
