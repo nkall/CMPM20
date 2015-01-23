@@ -105,7 +105,7 @@ function initStarterPokemen(state, pokemen){
 	updateSelector(state.isDiscovered);
 }
 
-//
+// Team Rocket's balloon in background for effect
 function Balloon(img, coords){
 	this.img = img;
 	this.startCoords = new Coordinates(coords.posX, coords.posY);
