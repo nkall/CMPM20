@@ -12,10 +12,20 @@ function Sprite (poke, coords){
 	this.coords = coords;
 }
 
+// Returns true if a given coordinate pair overlaps a given sprite
+Sprite.prototype.containsPoint = function (point){
+	sprLen = this.poke.spriteLen;
+	if (point.posX > this.coords.posX && point.posX < this.coords.posX + sprLen &&
+		point.posY > this.coords.posY && point.posY < this.coords.posY + sprLen){
+		return true;
+	}
+	return false;
+}
+
 Sprite.prototype.drawSprite = function (image, context){
 	//Variables for brevity
 	p = this.poke;
-	s = p.spriteSize;
+	s = p.spriteLen;
 	context.drawImage(image, p.clipCoords.posX, p.clipCoords.posY, s, s, 
 					  this.coords.posX, this.coords.posY, s, s);
 }
@@ -26,12 +36,12 @@ function Coordinates(posX, posY){
 }
 
 // This represents a Pokemon type, not an individual sprite
-function Pokemon(species, pokedexNo, spriteSize, clipCoords){
+function Pokemon(species, pokedexNo, spriteLen, clipCoords){
 	this.species = species;
 	this.pokedexNo = pokedexNo;
 
 	// Sprites are square -- this is the length of an edge
-	this.spriteSize = spriteSize;
+	this.spriteLen = spriteLen;
 	// This represents the coordinates on the bigger image from which to 'clip'
 	// the smaller image
 	this.clipCoords = clipCoords;
@@ -39,19 +49,19 @@ function Pokemon(species, pokedexNo, spriteSize, clipCoords){
 
 // This divides the big image into individual Pokemon objects.  Why not just use
 // individual sprite images?  Well, I'm too lazy to crop and resave each one.
-function splitSprites(sourceImg, spriteAmt, spriteSize, columns){
+function splitSprites(sourceImg, spriteAmt, spriteLen, columns){
 	var pokemen = [];
 	for (var i = 0; i < spriteAmt; i++){
-		clipX = spriteSize * (i % columns);
-		clipY = spriteSize * Math.floor((i / columns));
+		clipX = spriteLen * (i % columns);
+		clipY = spriteLen * Math.floor((i / columns));
 		clipCoords = new Coordinates(clipX, clipY);
-		pokemen[pokemen.length] = new Pokemon("Unknown", i+1, spriteSize, clipCoords);
+		pokemen[pokemen.length] = new Pokemon("Unknown", i+1, spriteLen, clipCoords);
 	}
 	return pokemen;
 }
 
 
-function gameLoop(context, bgImg, img, pokemen){
+function gameLoop(state, context, bgImg, img, pokemen){
 	context.drawImage(bgImg, 0, 0);
 	spr = new Sprite(pokemen[Math.round(Math.random()*150)], new Coordinates(0,0));
 	spr.drawSprite(img, context);
@@ -74,9 +84,9 @@ $(window).ready(function(){
 	bgImg.onload = function() {
     	img.onload = function() {
     		var pokemen = splitSprites(img, 151, 96, 13);
-    		var state = new GameState();
+    		var state = new GameState(pokemen, []);
     		window.setInterval(function() {
- 				gameLoop(context, bgImg, img, pokemen);
+ 				gameLoop(state, context, bgImg, img, pokemen);
 			}, 1000);
 		};
 	};
