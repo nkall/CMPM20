@@ -1,18 +1,33 @@
+function Coordinates(posX, posY){
+	this.posX = posX;
+	this.posY = posY;
+}
+
 function GameState(pokeList, spriteList){
 	this.pokeList = pokeList;
 	this.spriteList = spriteList;
+
+	this.isClicking = false; //Flag to check if mouse button being held
 }
 
 GameState.prototype.appendSprite = function (newSprite) {
 	this.spriteList[this.spriteList.length] = newSprite;
 }
 
+GameState.prototype.drawSprites = function (image, context){
+	for (var i = 0; i < this.spriteList.length; i++) {
+		this.spriteList[i].drawSprite(image, context);
+	}
+}
+
+
+
 function Sprite (poke, coords){
 	this.poke = poke;  // Type of Pokemon
 	this.coords = coords;
 }
 
-// Returns true if a given coordinate pair overlaps a given sprite
+// Returns true if a given coordinate pair overlaps the sprite
 Sprite.prototype.containsPoint = function (point){
 	sprLen = this.poke.spriteLen;
 	if (point.posX > this.coords.posX && point.posX < this.coords.posX + sprLen &&
@@ -30,10 +45,7 @@ Sprite.prototype.drawSprite = function (image, context){
 					  this.coords.posX, this.coords.posY, s, s);
 }
 
-function Coordinates(posX, posY){
-	this.posX = posX;
-	this.posY = posY;
-}
+
 
 // This represents a Pokemon type, not an individual sprite
 function Pokemon(species, pokedexNo, spriteLen, clipCoords){
@@ -47,9 +59,11 @@ function Pokemon(species, pokedexNo, spriteLen, clipCoords){
 	this.clipCoords = clipCoords;
 }
 
+
+
 // This divides the big image into individual Pokemon objects.  Why not just use
 // individual sprite images?  Well, I'm too lazy to crop and resave each one.
-function splitSprites(sourceImg, spriteAmt, spriteLen, columns){
+function splitSprites(spriteAmt, spriteLen, columns){
 	var pokemen = [];
 	for (var i = 0; i < spriteAmt; i++){
 		clipX = spriteLen * (i % columns);
@@ -63,16 +77,43 @@ function splitSprites(sourceImg, spriteAmt, spriteLen, columns){
 
 function gameLoop(state, context, bgImg, img, pokemen){
 	context.drawImage(bgImg, 0, 0);
-	spr = new Sprite(pokemen[Math.round(Math.random()*150)], new Coordinates(0,0));
-	spr.drawSprite(img, context);
+	state.drawSprites(img, context);
+}
+
+function handleDragging (e, state){
+	if (!state.isClicking){
+		return state;
+	}
+
+	for (var i = 0; i < state.spriteList.length; i++) {
+		if (state.spriteList[i].containsPoint){
+			offset = (state.spriteList[i].poke.spriteLen) / 2
+			state.spriteList[i].coords = new Coordinates(e.clientX - offset, 
+														 e.clientY - offset);
+			return state;
+		}
+	}
+	return state;
 }
 
 
 $(window).ready(function(){
-	// Set up canvas and mouse events
+	// Set up canvas
 	canvas = $("#canvas")[0]
 	var context = canvas.getContext("2d");
-	//canvas.addEventListener("mousedown")
+
+	// Create game state and mouse events
+    var pokemen = splitSprites(151, 96, 13);
+    var state = new GameState(pokemen, []);
+	canvas.addEventListener("mousedown", function(){
+		state.isClicking = true;
+	}, false);
+	canvas.addEventListener("mouseup", function(){
+		state.isClicking = false;
+	}, false);
+	canvas.addEventListener("mousemove", function(e){
+		state = handleDragging(e, state);
+	}, false);
 
 	// Set up images that will be used
 	var bgImg = new Image();
@@ -83,11 +124,12 @@ $(window).ready(function(){
 	//Once images are loaded, start game loop
 	bgImg.onload = function() {
     	img.onload = function() {
-    		var pokemen = splitSprites(img, 151, 96, 13);
-    		var state = new GameState(pokemen, []);
+    		spr = new Sprite(pokemen[Math.round(Math.random()*150)], new Coordinates(0,0));
+			state.appendSprite(spr);
+
     		window.setInterval(function() {
  				gameLoop(state, context, bgImg, img, pokemen);
-			}, 1000);
+			}, 10);
 		};
 	};
 });
