@@ -134,7 +134,7 @@ Balloon.prototype.update = function(context){
 
 		// Snap to limits
 		if (this.coords.posX < this.leftLimit){
-			this.coords = this.startCoords;
+			this.coords = new Coordinates(this.startCoords.posX, this.startCoords.posY);
 		}
 		if (this.vertCount > this.vertLimit){
 			this.vertCount = 0;
