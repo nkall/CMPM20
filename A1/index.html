@@ -1,14 +1,34 @@
+<!-- nkallhov@ucsc.edu -->
 <!DOCTYPE HTML>
 <html>
   <head>
 	<meta charset="UTF-8">
+	<!-- jQuery used sparingly for getElementById convenience -->
     <script src="jquery-1.11.1.js" type="text/javascript"></script>
     <script src="pokemon.js" type="text/javascript"></script>
+    <script src="gamestate.js" type="text/javascript"></script>
   </head>
   <body>
     <canvas id="canvas" width="600" height="375"></canvas>
-    <div id="buttonBox" width="600">
-    	<button>Helo</button>
+
+    <div id="chooseBox">
+    <!-- I chose to do a selector because there were so many Pokemon;
+         there wouldn't be much real estate for buttons on the canvas. -->
+    <b>Add another Pokémon:</b>
+     <select id="choices"></select>
+    	<button id="chooseButton">I Choose You!</b>
+    </div>
+
+    <div>
+    <h2>Instructions</h2>
+    <p>Team Rocket took you by surprise and stole almost all of your Pokémon,
+    and right before you were set to participate in the Ever Grande Conference!  
+    Luckily, they left your trusty Mew and Bulbasaur behind.  Catch 'em all over
+    again by clicking and dragging your Pokémon so that they pair together.  The 
+    resulting Pokémon will be on the midpoint between the combined Pokémons' 
+    Pokédex number.  If you run out, select another Pokémon from the dropdown
+    above, and click on "I Choose You" button to get some more.  Good luck, and 
+    don't mess it up!  Your Pokémon are counting on you!</p>
     </div>
   </body>
-</html>      
+</html> 
