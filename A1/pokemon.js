@@ -85,8 +85,9 @@ function splitSprites(spriteAmt, spriteLen, columns){
 }
 
 // Drawing only -- most logic is handled by the event listeners
-function update(state, context, bgImg, img, pokemen){
+function draw(state, context, bgImg, img, balloon){
 	context.drawImage(bgImg, 0, 0);
+	balloon.update(context);
 	state.drawSprites(img, context);
 }
 
@@ -102,6 +103,45 @@ function initStarterPokemen(state, pokemen){
 	state.isDiscovered[0] = true;
 	state.isDiscovered[150] = true;
 	updateSelector(state.isDiscovered);
+}
+
+//
+function Balloon(img, coords){
+	this.img = img;
+	this.startCoords = new Coordinates(coords.posX, coords.posY);
+	this.coords = coords;
+	this.leftLimit = -250;
+	this.isGoingUp = true; // Toggles for up/down movement
+	this.vertCount = 0;
+	this.vertLimit = 5;  // Number of up/down pixel travel
+	this.frameCount = 0;
+	this.frameUpdateRate = 25; // Updates every x frames
+}
+
+// Update and display the baloon
+Balloon.prototype.update = function(context){
+	this.frameCount++;
+	if (this.frameCount > this.frameUpdateRate){
+		this.frameCount = 0;
+		this.vertCount++;
+		this.coords.posX -= 2;
+		// Bob up or down
+		if (this.isGoingUp){
+			this.coords.posY++;
+		} else {
+			this.coords.posY--;
+		}
+
+		// Snap to limits
+		if (this.coords.posX < this.leftLimit){
+			this.coords = this.startCoords;
+		}
+		if (this.vertCount > this.vertLimit){
+			this.vertCount = 0;
+			this.isGoingUp = !this.isGoingUp;
+		}
+	}
+	context.drawImage(this.img, this.coords.posX, this.coords.posY);
 }
 
 // Adds fields to the HTML Pokemon selector if needed
@@ -125,7 +165,7 @@ function loadContent(source){
 
 $(document).ready(function(){
 	// Set up canvas
-	canvas = $("#canvas")[0]
+	var canvas = $("#canvas")[0]
 	var context = canvas.getContext("2d");
 
 	// Create game state and mouse events
@@ -143,15 +183,18 @@ $(document).ready(function(){
 	}, false);
 
 	// Set up images that will be used
+	// I did not personally make any of these art assets
 	var bgImg = loadContent("bg.jpg");  // Background
 	var img = loadContent("pokemon.png");  // Sprite sheet
+	var rocket = loadContent("rocket.png");
+	var balloon = new Balloon(rocket, new Coordinates(650, -3))
 
 	//Once images are loaded, start game loop
 	bgImg.onload = function() {
     	img.onload = function() {
     		initStarterPokemen(state, pokemen);
     		window.setInterval(function() {
- 				update(state, context, bgImg, img, pokemen);
+ 				draw(state, context, bgImg, img, balloon);
 			}, 10);
 		};
 	};
