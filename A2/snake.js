@@ -1,34 +1,34 @@
-function GameState(){
+function GameState(imgList){
 	this.tileSize = 16;      // Pixel length of (square) tiles
 	this.canvasWidth = 64;   // Width of canvas in tiles
 	this.canvasLength = 32;  // Length of canvas in tiles
 
 	this.buildingList = [];
-	//this.tileList = this.initTileList;
+	this.imgList = imgList;
+	//this.food = new Object;
 }
-/*
-GameState.prototype.initTileList = function (){
-	newTileList = [];
-	for(var x = 0; x < this.canvasWidth; x++){
-		newYList = [];
-		for(var y = 0; y < this.canvasLength; y++){
-			newYList[y] = new Tile(false, false);
-		}
-		newTileList[x] = newYList;
-	}
-	return newTileList;
-};*/
 
-GameState.prototype.addBuilding = function (){
+GameState.prototype.addObject = function (isFood){
 	while(1){
 		var randX = Math.round(Math.random() * this.canvasWidth);
 		var randY = Math.round(Math.random() * this.canvasLength);
-		if (!this.isOverlappingSomething(randX, randY)){
-			this.buildingList[this.buildingList.length] = \
-							new Building(randX, randY, imgIndex);
+		if (!this.isOverlappingBuilding(randX, randY, 2) && 
+			!this.isOverlappingFood(randX, randY, 2)){
+				if (isFood){
+					food = new Object(randX, randY, imgIndex, true);
+				} else{
+					this.buildingList[this.buildingList.length] = \
+						new Object(randX, randY, imgIndex, false);
+				}
+			break;
 		}
 	}
 };
+
+GameState.prototype.moveFood = function(){
+	while(1){
+
+}
 
 GameState.prototype.isOverlappingBuilding = function(x, y, size){
 	for (var i = 0; i < this.buildingList.length; i++){
@@ -37,21 +37,29 @@ GameState.prototype.isOverlappingBuilding = function(x, y, size){
 		}
 	}
 	return false;
-}
+};
 
-function Building (x, y, imgIndex){
+GameState.prototype.isOverlappingFood = function(x, y, size){
+
+};
+
+function Object (x, y, imgIndex, isFood){
 	this.x = x;
 	this.y = y;
 	this.imgIndex = imgIndex;
-}
-
-Building.prototype.isOverlapping(x, y){
-
-}
-
-function Tile(isObstructed, isFood){
-	this.isObstructed = isObstructed;
 	this.isFood = isFood;
+}
+
+Object.prototype.isOverlapping(x, y){
+	if (Math.abs(x - this.x) > size && Math.abs(y - this.y) > size){
+		return true;
+	}
+	return false;
+};
+
+Object.prototype.draw(gs, cxt){
+	cxt.drawImage(gs.imgList[this.imgIndex], this.x * gs.tileSize, 
+					this.y * gs.tileSize);
 }
 
 function fillGrass(gs, cxt, grassImg){
@@ -62,12 +70,16 @@ function fillGrass(gs, cxt, grassImg){
 	}
 }
 
-function drawTile(gs, cxt, tileX, tileY, img){
-	cxt.drawImage(img, tileX * gs.tileSize, tileY * gs.tileSize);
+function drawObjects(gs, cxt){
+	// Draw buildings
+	for (var i = 0; i < this.gs.buildingList.length; i++){
+		gs.buildingList[i].draw(gs, cxt);
+	}
+	// Draw food
 }
 
-function runGame(canvas, cxt){
-	drawTile(gs, cxt, randX, randY, imgList[randBuild]);
+function runGame(gs, cxt){
+	fillGrass(gs, cxt, imgList[0]);
 }
 
 $(window).load(function(){
@@ -75,12 +87,10 @@ $(window).load(function(){
 	var cxt = canvas.getContext("2d");
 
 	loadImgs(function (imgList){
-		var gs = new GameState();
-		fillGrass(gs, cxt, imgList[0]);
+		var gs = new GameState(imgList);
 		window.setInterval(function() {
-			runGame(canvas, context);
+			runGame(gs, cxt);
 		}, 500);
-		runGame(canvas, cxt, gs);
 	});
 });
 
