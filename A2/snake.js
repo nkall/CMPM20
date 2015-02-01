@@ -8,8 +8,10 @@ function GameState(imgList){
 
 	// Adds the food to board
 	this.food = new GameObject (0, 0, 1, true);
+	this.snake = new Snake (this.canvasLength / 2, this.canvasLength / 2);
 }
 
+// Adds a new building to buildingList at a random location
 GameState.prototype.addBuilding = function (){
 	for (var i = 0; i < 500; i++){
 		var randX = Math.round(Math.random() *
@@ -27,6 +29,8 @@ GameState.prototype.addBuilding = function (){
 	}
 };
 
+// Checks if an object at coordinates x, y would be overlapping
+// or overlapped by any other object
 GameState.prototype.isOverlappingObject = function(x, y){
 	// Check all buildings
 	for (var i = 0; i < this.buildingList.length; i++){
@@ -41,6 +45,8 @@ GameState.prototype.isOverlappingObject = function(x, y){
 	return false;
 };
 
+// A 4x4 object (32x32 pixels) at a given coordinate pair
+// This can be either food or a building
 function GameObject (x, y, imgIndex, isFood){
 	this.x = x;
 	this.y = y;
@@ -48,6 +54,8 @@ function GameObject (x, y, imgIndex, isFood){
 	this.isFood = isFood;
 }
 
+// Checks if an object at coordinates x, y would be overlapping
+// or overlapped by the current object instance
 GameObject.prototype.isOverlapping = function(x, y){
 	if (Math.abs(x - this.x) < 2 && Math.abs(y - this.y) < 2){
 		return true;
@@ -55,50 +63,110 @@ GameObject.prototype.isOverlapping = function(x, y){
 	return false;
 };
 
-GameObject.prototype.draw = function(gs, cxt){
-	cxt.drawImage(gs.imgList[this.imgIndex], this.x * 
+// Draws an object on the map
+GameObject.prototype.draw = function(gs, ctx){
+	ctx.drawImage(gs.imgList[this.imgIndex], this.x * 
 		gs.tileSize, this.y * gs.tileSize);
 }
 
+function SnakeSegment(x, y){
+	this.x = x;
+	this.y = y;
+}
 
 
-function fillGrass(gs, cxt){
+// Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
+function Snake(startX, startY){
+	this.len = 5;
+	this.direction = "RIGHT";
+
+	// Tail[0] is closest to the head
+	for (var i = 0; i < this.len; i++) {
+		this.tail[this.tail.length] = new SnakeSegment(startX -
+												 i, startY);
+	}
+}
+
+Snake.prototype.moveSnake = function (){
+	var currHead = this.tail[0];
+	switch(this.direction){
+		case "UP":
+			this.tail.splice(0,0, new SnakeSegment(currHead.x, 
+											 currHead.y - 1));
+			break;
+		case "DOWN":
+			this.tail.splice(0,0, new SnakeSegment(currHead.x,
+											 currHead.y + 1));
+			break;
+		case "LEFT":
+			this.tail.splice(0,0, new SnakeSegment(
+								 currHead.x - 1, currHead.y));
+			break;
+		case "RIGHT":
+			this.tail.splice(0,0, new SnakeSegment(
+								 currHead.x + 1, currHead.y));
+			break;
+		default:
+			break;
+	}
+	// Chop off old tail end
+	this.tail.pop();
+}
+
+Snake.prototype.draw = function (gs, ctx){
+	for (var i = 0; i < this.tail.length; i++) {
+		ctx.rect(this.tail[i].x * gs.tileSize, this.tail[i].y *
+				  gs.tileSize, gs.tileSize, gs.tileSize);
+		ctx.fill();
+		console.log(this.tail[i].x + "/" + this.tail[i].y);
+	}
+}
+
+// Fills the map with grass tiles
+function fillGrass(gs, ctx){
+	// Using multiples of 2, since grass tiles are 2x grid size
 	for (var x = 0; x < gs.canvasWidth; x += 2){
 		for (var y = 0; y < gs.canvasLength; y += 2){
-			cxt.drawImage(gs.imgList[0], x * gs.tileSize, 
-										y * gs.tileSize);
+			ctx.drawImage(gs.imgList[0], x * gs.tileSize, 
+										 y * gs.tileSize);
 		}
 	}
 }
 
-function drawObjects(gs, cxt){
+// Draws all GameObjects (buildings + food) on map
+function drawObjects(gs, ctx){
 	// Draw buildings
 	for (var i = 0; i < gs.buildingList.length; i++){
-		gs.buildingList[i].draw(gs, cxt);
+		gs.buildingList[i].draw(gs, ctx);
 	}
 	// Draw food
-	gs.food.draw(gs, cxt);
+	gs.food.draw(gs, ctx);
 }
 
-function gameLoop(gs, cxt){
-	fillGrass(gs, cxt);
-	drawObjects(gs, cxt);
+function gameLoop(gs, ctx){
+	fillGrass(gs, ctx);
+	drawObjects(gs, ctx);
 	gs.addBuilding();
+
+	// Draw snake
+	gs.snake.draw(gs, ctx);
+	gs.snake.moveSnake();
+
 }
 
-function runGame(cxt, imgList){
+function runGame(ctx, imgList){
 	var gs = new GameState(imgList);
 	window.setInterval(function() {
-		gameLoop(gs, cxt);
+		gameLoop(gs, ctx);
 	}, 500);
 }
 
 $(window).load(function(){
 	var canvas = $("#canvas")[0];
-	var cxt = canvas.getContext("2d");
+	var ctx = canvas.getContext("2d");
 
 	loadImgs(function (imgList){
-		runGame(cxt, imgList)
+		runGame(ctx, imgList)
 	});
 });
 
