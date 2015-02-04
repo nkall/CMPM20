@@ -6,25 +6,40 @@ function GameState(imgList){
 	this.buildingList = [];
 	this.imgList = imgList;
 
-	// Adds the food to board
+	// Adds the food and randomizes it
 	this.food = new GameObject (0, 0, 1, true);
-	this.snake = new Snake (this.canvasLength / 2, this.canvasLength / 2);
+	this.addObject(true)
+
+	this.snake = new Snake (this.canvasLength / 2, 
+								this.canvasLength / 2);
 }
 
 // Adds a new building to buildingList at a random location
-GameState.prototype.addBuilding = function (){
+GameState.prototype.addObject = function (isFood){
 	for (var i = 0; i < 500; i++){
-		var randX = Math.round(Math.random() *
-							(this.canvasWidth + 1)) - 1;
-		var randY = Math.round(Math.random() *
-							(this.canvasLength + 1)) - 1;
-		if (!this.isOverlappingObject(randX, randY)){
-			var buildIndex = Math.round(Math.random() * 
-				         (this.imgList.length - 3)) + 2;
-			this.buildingList[this.buildingList.length] = 
+		if (isFood){
+			var randX = Math.round(Math.random() *
+									this.canvasWidth);
+			var randY = Math.round(Math.random() *
+									this.canvasLength);
+			if (!this.isOverlappingObject(randX, randY)){
+				this.food = new GameObject (randX, randY, 1,
+									  		          true);
+			return;
+			}
+		} else {
+			var randX = Math.round(Math.random() *
+								(this.canvasWidth + 1)) - 1;
+			var randY = Math.round(Math.random() *
+								(this.canvasLength + 1)) - 1;
+			if (!this.isOverlappingObject(randX, randY)){
+				var buildIndex = Math.round(Math.random() * 
+				         	(this.imgList.length - 4)) + 3;
+				this.buildingList[this.buildingList.length] = 
 					new GameObject(randX, randY, 
 									buildIndex, false);
-			return;
+				return;
+			}
 		}
 	}
 };
@@ -78,7 +93,8 @@ function SnakeSegment(x, y){
 // Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
 function Snake(startX, startY){
 	this.len = 5;
-	this.direction = "RIGHT";
+	this.direction = "RIGHT"
+	this.tail = []
 
 	// Tail[0] is closest to the head
 	for (var i = 0; i < this.len; i++) {
@@ -115,9 +131,8 @@ Snake.prototype.moveSnake = function (){
 
 Snake.prototype.draw = function (gs, ctx){
 	for (var i = 0; i < this.tail.length; i++) {
-		ctx.rect(this.tail[i].x * gs.tileSize, this.tail[i].y *
-				  gs.tileSize, gs.tileSize, gs.tileSize);
-		ctx.fill();
+		ctx.drawImage(gs.imgList[2], this.tail[i].x * 
+				gs.tileSize, this.tail[i].y * gs.tileSize);
 		console.log(this.tail[i].x + "/" + this.tail[i].y);
 	}
 }
@@ -140,13 +155,14 @@ function drawObjects(gs, ctx){
 		gs.buildingList[i].draw(gs, ctx);
 	}
 	// Draw food
+	gs.food
 	gs.food.draw(gs, ctx);
 }
 
 function gameLoop(gs, ctx){
 	fillGrass(gs, ctx);
 	drawObjects(gs, ctx);
-	gs.addBuilding();
+	gs.addObject(false);
 
 	// Draw snake
 	gs.snake.draw(gs, ctx);
@@ -171,7 +187,7 @@ $(window).load(function(){
 });
 
 function loadImgs(callbackFn){
-	var imgPaths = ["grass.png","food.png"];
+	var imgPaths = ["grass.png","food.png","snake.png"];
 	// Add various building obstacle images
 	for (var i = 0; i < 20; i++){
 		imgPaths[imgPaths.length] = "build" + i + ".png";
