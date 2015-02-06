@@ -6,12 +6,17 @@ function GameState(imgList){
 	this.buildingList = [];
 	this.imgList = imgList;
 
-	// Adds the food and randomizes it
-	this.food = new GameObject (0, 0, 1, true);
-	this.addObject(true)
-
 	this.snake = new Snake (this.canvasLength / 2, 
 								this.canvasLength / 2);
+
+	// Adds the food and randomizes it
+	this.food = new GameObject (0, 0, 1, true);
+	this.addObject(true);
+
+	this.isGameOver = false;
+	this.score = 0;
+
+	this.buildingTimerLimit = 10;
 }
 
 // Adds a new building to buildingList at a random location
@@ -19,20 +24,22 @@ GameState.prototype.addObject = function (isFood){
 	for (var i = 0; i < 500; i++){
 		if (isFood){
 			var randX = Math.round(Math.random() *
-									this.canvasWidth);
+									(this.canvasWidth - 2));
 			var randY = Math.round(Math.random() *
-									this.canvasLength);
-			if (!this.isOverlappingObject(randX, randY)){
+									(this.canvasLength - 2));
+			if (!this.isOverlappingObject(randX, randY) &&
+				!this.snake.hasTailInside4x4(randX, randY)){
 				this.food = new GameObject (randX, randY, 1,
 									  		          true);
-			return;
+				return;
 			}
 		} else {
 			var randX = Math.round(Math.random() *
 								(this.canvasWidth + 1)) - 1;
 			var randY = Math.round(Math.random() *
 								(this.canvasLength + 1)) - 1;
-			if (!this.isOverlappingObject(randX, randY)){
+			if (!this.isOverlappingObject(randX, randY) &&
+				!this.snake.hasTailInside4x4(randX, randY)){
 				var buildIndex = Math.round(Math.random() * 
 				         	(this.imgList.length - 4)) + 3;
 				this.buildingList[this.buildingList.length] = 
@@ -89,22 +96,41 @@ function SnakeSegment(x, y){
 	this.y = y;
 }
 
+SnakeSegment.prototype.isInside4x4 = function(objectX, objectY){
+	var xDist = this.x - objectX;
+	var yDist = this.y - objectY;
+	if ((xDist === 0 || xDist === 1)  &&
+		(yDist === 0 || yDist === 1)){
+		return true;
+	}
+	return false;
+}
 
 // Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
 function Snake(startX, startY){
-	this.len = 5;
 	this.direction = "RIGHT"
 	this.tail = []
 
-	// Tail[0] is closest to the head
-	for (var i = 0; i < this.len; i++) {
+	// Create a snake with length 5
+	// Tail[0] is the head
+	for (var i = 0; i < 5; i++) {
 		this.tail[this.tail.length] = new SnakeSegment(startX -
 												 i, startY);
 	}
 }
 
-Snake.prototype.moveSnake = function (){
+Snake.prototype.hasTailInside4x4 = function(objectX, objectY){
+	for (var i = 0; i < this.tail.length; i++){
+		if (this.tail[i].isInside4x4(objectX, objectY)){
+			return true;
+		}
+	}
+	return false;
+}
+
+Snake.prototype.moveSnake = function (gs, ctx){
 	var currHead = this.tail[0];
+	var gotFood = this.isEating(gs);
 	switch(this.direction){
 		case "UP":
 			this.tail.splice(0,0, new SnakeSegment(currHead.x, 
@@ -123,17 +149,66 @@ Snake.prototype.moveSnake = function (){
 								 currHead.x + 1, currHead.y));
 			break;
 		default:
+			console.log("Invalid direction specified:" + 
+											  this.direction);
 			break;
 	}
-	// Chop off old tail end
-	this.tail.pop();
+	// Move food if eating, and chop off tail end otherwise
+	if (this.isEating(gs)){
+		gs.addObject(true);
+		gs.food.draw(gs, ctx);
+		gs.score++;
+		$("#score").text(gs.score);
+		if ($("#hiscore").text() < gs.score){
+			$("#hiscore").text(gs.score);
+		}
+	} else {
+		this.tail.pop();
+	}
+	if (this.hasCollided(gs)){
+		gs.isGameOver = true;
+	}
+}
+
+Snake.prototype.isEating = function (gs){
+	if (this.tail[0].isInside4x4(gs.food.x, gs.food.y)){
+		return true;
+	}
+	return false;
+}
+
+// Checks if the snake has collided with a building, the walls,
+// or its own tail
+Snake.prototype.hasCollided = function (gs){
+	var head = this.tail[0];
+	// Check for edge collision
+	if (head.x < 0 || head.x > gs.canvasWidth ||
+		head.y < 0 || head.y > gs.canvasLength){
+		return true;
+	}
+
+	// Check for tail collision by testing if the head and a
+	// tail segment occupy the same position
+	for (var i = 1; i < this.tail.length; i++){
+		if (head.x === this.tail[i].x &&
+			head.y === this.tail[i].y){
+			return true;
+		}
+	}
+	// Check for building collision
+	for (var i = 0; i < gs.buildingList.length; i++) {
+		if (head.isInside4x4(gs.buildingList[i].x,
+							 gs.buildingList[i].y)){
+			return true;
+		}
+	}
+	return false;
 }
 
 Snake.prototype.draw = function (gs, ctx){
 	for (var i = 0; i < this.tail.length; i++) {
 		ctx.drawImage(gs.imgList[2], this.tail[i].x * 
 				gs.tileSize, this.tail[i].y * gs.tileSize);
-		console.log(this.tail[i].x + "/" + this.tail[i].y);
 	}
 }
 
@@ -155,26 +230,91 @@ function drawObjects(gs, ctx){
 		gs.buildingList[i].draw(gs, ctx);
 	}
 	// Draw food
-	gs.food
 	gs.food.draw(gs, ctx);
 }
 
-function gameLoop(gs, ctx){
+function gameLoop(gs, ctx, shouldBuild){
 	fillGrass(gs, ctx);
+
+	if (shouldBuild){
+		gs.addObject(false);
+	}
 	drawObjects(gs, ctx);
-	gs.addObject(false);
 
 	// Draw snake
-	gs.snake.draw(gs, ctx);
-	gs.snake.moveSnake();
-
+	gs.snake.moveSnake(gs, ctx);
+	if (!gs.isGameOver){
+		gs.snake.draw(gs, ctx);
+	} else {
+		// Dim screen
+		ctx.fillStyle = '#000000';
+		ctx.globalAlpha=0.5;
+		ctx.fillRect(0, 0, gs.canvasWidth * gs.tileSize, 
+						  gs.canvasLength * gs.tileSize);
+		// Print 'Game Over' message
+		ctx.globalAlpha=1;
+		ctx.font = '30pt Helvetica';
+		ctx.fillStyle = '#FFFFFF';
+		ctx.textAlign = 'center';
+		ctx.fillText('Game Over',
+					 (gs.canvasWidth * gs.tileSize) / 2,
+						(gs.canvasLength * gs.tileSize) / 2);
+		ctx.font = '20pt Helvetica';
+		ctx.fillText('Press Space to try again',
+				(gs.canvasWidth * gs.tileSize) / 2,
+				(gs.canvasLength * gs.tileSize) / 2 + 50);
+	}
 }
 
 function runGame(ctx, imgList){
 	var gs = new GameState(imgList);
+	var buildingTimer = 0;
+
 	window.setInterval(function() {
-		gameLoop(gs, ctx);
-	}, 500);
+		var shouldBuild = false;
+		buildingTimer++;
+		if (buildingTimer > gs.buildingTimerLimit){
+			buildingTimer = 0;
+			shouldBuild = true;
+		} else {
+			buildingTimer++;
+		}
+		gameLoop(gs, ctx, shouldBuild);
+	}, 200);
+
+	document.addEventListener("keydown", function(e){
+		console.log(e.key);
+		switch(e.key){
+			case "Up":
+				if (gs.snake.direction !== "DOWN"){
+					gs.snake.direction = "UP";
+				}
+				break;
+			case "Down":
+				if (gs.snake.direction !== "UP"){
+					gs.snake.direction = "DOWN";
+				}
+				break;
+			case "Left":
+				if (gs.snake.direction !== "RIGHT"){
+					gs.snake.direction = "LEFT";
+				}
+				break;
+			case "Right":
+				if (gs.snake.direction !== "LEFT"){
+					gs.snake.direction = "RIGHT";
+				}
+				break;
+			case " ":
+				if (gs.isGameOver){
+					gs = new GameState(imgList);
+					$("#score").text('0');
+				}
+				break;
+			default:
+				break;
+		}
+	}, false);
 }
 
 $(window).load(function(){
