@@ -1,101 +1,18 @@
-function GameState(imgList){
-	this.tileSize = 16;      // Pixel length of (square) tiles
-	this.canvasWidth = 64;   // Width of canvas in tiles
-	this.canvasLength = 32;  // Length of canvas in tiles
+/*
+ *	This file comprises the Snake and associated SnakeSegment
+ *	objects, with functions involving movement, collision 
+ *	detection, and drawing of the snake.
+ */
 
-	this.buildingList = [];
-	this.imgList = imgList;
 
-	this.snake = new Snake (this.canvasLength / 2, 
-								this.canvasLength / 2);
-
-	// Adds the food and randomizes it
-	this.food = new GameObject (0, 0, 1, true);
-	this.addObject(true);
-
-	this.isGameOver = false;
-	this.score = 0;
-
-	this.buildingTimerLimit = 10;
-}
-
-// Adds a new building to buildingList at a random location
-GameState.prototype.addObject = function (isFood){
-	for (var i = 0; i < 500; i++){
-		if (isFood){
-			var randX = Math.round(Math.random() *
-									(this.canvasWidth - 2));
-			var randY = Math.round(Math.random() *
-									(this.canvasLength - 2));
-			if (!this.isOverlappingObject(randX, randY) &&
-				!this.snake.hasTailInside4x4(randX, randY)){
-				this.food = new GameObject (randX, randY, 1,
-									  		          true);
-				return;
-			}
-		} else {
-			var randX = Math.round(Math.random() *
-								(this.canvasWidth + 1)) - 1;
-			var randY = Math.round(Math.random() *
-								(this.canvasLength + 1)) - 1;
-			if (!this.isOverlappingObject(randX, randY) &&
-				!this.snake.hasTailInside4x4(randX, randY)){
-				var buildIndex = Math.round(Math.random() * 
-				         	(this.imgList.length - 4)) + 3;
-				this.buildingList[this.buildingList.length] = 
-					new GameObject(randX, randY, 
-									buildIndex, false);
-				return;
-			}
-		}
-	}
-};
-
-// Checks if an object at coordinates x, y would be overlapping
-// or overlapped by any other object
-GameState.prototype.isOverlappingObject = function(x, y){
-	// Check all buildings
-	for (var i = 0; i < this.buildingList.length; i++){
-		if (this.buildingList[i].isOverlapping(x, y)){
-			return true;
-		}
-	}
-	// Check food
-	if (this.food.isOverlapping(x, y)){
-		return true;
-	}
-	return false;
-};
-
-// A 4x4 object (32x32 pixels) at a given coordinate pair
-// This can be either food or a building
-function GameObject (x, y, imgIndex, isFood){
-	this.x = x;
-	this.y = y;
-	this.imgIndex = imgIndex;
-	this.isFood = isFood;
-}
-
-// Checks if an object at coordinates x, y would be overlapping
-// or overlapped by the current object instance
-GameObject.prototype.isOverlapping = function(x, y){
-	if (Math.abs(x - this.x) < 2 && Math.abs(y - this.y) < 2){
-		return true;
-	}
-	return false;
-};
-
-// Draws an object on the map
-GameObject.prototype.draw = function(gs, ctx){
-	ctx.drawImage(gs.imgList[this.imgIndex], this.x * 
-		gs.tileSize, this.y * gs.tileSize);
-}
-
+// A single square of the snake's body
 function SnakeSegment(x, y){
 	this.x = x;
 	this.y = y;
 }
 
+// Checks if a given segment is inside a 4x4 space (e.g. a 
+// building or food) with origin (objectX, objectY)
 SnakeSegment.prototype.isInside4x4 = function(objectX, objectY){
 	var xDist = this.x - objectX;
 	var yDist = this.y - objectY;
@@ -106,19 +23,19 @@ SnakeSegment.prototype.isInside4x4 = function(objectX, objectY){
 	return false;
 }
 
-// Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
 function Snake(startX, startY){
-	this.direction = "RIGHT"
-	this.tail = []
+	// Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
+	this.direction = "RIGHT";
+	this.tail = []; // Array of SnakeSegments
 
-	// Create a snake with length 5
-	// Tail[0] is the head
+	// Create a snake of length 5 with tail[0] as the head
 	for (var i = 0; i < 5; i++) {
 		this.tail[this.tail.length] = new SnakeSegment(startX -
 												 i, startY);
 	}
 }
 
+// Checks if any of the snake's segments are inside a 4x4 space
 Snake.prototype.hasTailInside4x4 = function(objectX, objectY){
 	for (var i = 0; i < this.tail.length; i++){
 		if (this.tail[i].isInside4x4(objectX, objectY)){
@@ -128,9 +45,10 @@ Snake.prototype.hasTailInside4x4 = function(objectX, objectY){
 	return false;
 }
 
+// Update snake's position, score, and checks for collisions
 Snake.prototype.moveSnake = function (gs, ctx){
 	var currHead = this.tail[0];
-	var gotFood = this.isEating(gs);
+	// Adds another SnakeSegment in the current direction
 	switch(this.direction){
 		case "UP":
 			this.tail.splice(0,0, new SnakeSegment(currHead.x, 
@@ -155,21 +73,27 @@ Snake.prototype.moveSnake = function (gs, ctx){
 	}
 	// Move food if eating, and chop off tail end otherwise
 	if (this.isEating(gs)){
+		// Move and redraw food
 		gs.addObject(true);
 		gs.food.draw(gs, ctx);
+
+		// Update score, and highscore if applicable
 		gs.score++;
 		$("#score").text(gs.score);
 		if ($("#hiscore").text() < gs.score){
 			$("#hiscore").text(gs.score);
 		}
 	} else {
+		// Chop off the tail if no food is being eaten
 		this.tail.pop();
 	}
+	// End game if collision takes place
 	if (this.hasCollided(gs)){
 		gs.isGameOver = true;
 	}
 }
 
+// Returns true if snake's head intersects food
 Snake.prototype.isEating = function (gs){
 	if (this.tail[0].isInside4x4(gs.food.x, gs.food.y)){
 		return true;
@@ -177,8 +101,8 @@ Snake.prototype.isEating = function (gs){
 	return false;
 }
 
-// Checks if the snake has collided with a building, the walls,
-// or its own tail
+// Checks if the snake has collided with a building, the map
+// edges, or its own tail
 Snake.prototype.hasCollided = function (gs){
 	var head = this.tail[0];
 	// Check for edge collision
@@ -205,143 +129,10 @@ Snake.prototype.hasCollided = function (gs){
 	return false;
 }
 
+// Draw out each SnakeSegment on the grid
 Snake.prototype.draw = function (gs, ctx){
 	for (var i = 0; i < this.tail.length; i++) {
 		ctx.drawImage(gs.imgList[2], this.tail[i].x * 
 				gs.tileSize, this.tail[i].y * gs.tileSize);
-	}
-}
-
-// Fills the map with grass tiles
-function fillGrass(gs, ctx){
-	// Using multiples of 2, since grass tiles are 2x grid size
-	for (var x = 0; x < gs.canvasWidth; x += 2){
-		for (var y = 0; y < gs.canvasLength; y += 2){
-			ctx.drawImage(gs.imgList[0], x * gs.tileSize, 
-										 y * gs.tileSize);
-		}
-	}
-}
-
-// Draws all GameObjects (buildings + food) on map
-function drawObjects(gs, ctx){
-	// Draw buildings
-	for (var i = 0; i < gs.buildingList.length; i++){
-		gs.buildingList[i].draw(gs, ctx);
-	}
-	// Draw food
-	gs.food.draw(gs, ctx);
-}
-
-function gameLoop(gs, ctx, shouldBuild){
-	fillGrass(gs, ctx);
-
-	if (shouldBuild){
-		gs.addObject(false);
-	}
-	drawObjects(gs, ctx);
-
-	// Draw snake
-	gs.snake.moveSnake(gs, ctx);
-	if (!gs.isGameOver){
-		gs.snake.draw(gs, ctx);
-	} else {
-		// Dim screen
-		ctx.fillStyle = '#000000';
-		ctx.globalAlpha=0.5;
-		ctx.fillRect(0, 0, gs.canvasWidth * gs.tileSize, 
-						  gs.canvasLength * gs.tileSize);
-		// Print 'Game Over' message
-		ctx.globalAlpha=1;
-		ctx.font = '30pt Helvetica';
-		ctx.fillStyle = '#FFFFFF';
-		ctx.textAlign = 'center';
-		ctx.fillText('Game Over',
-					 (gs.canvasWidth * gs.tileSize) / 2,
-						(gs.canvasLength * gs.tileSize) / 2);
-		ctx.font = '20pt Helvetica';
-		ctx.fillText('Press Space to try again',
-				(gs.canvasWidth * gs.tileSize) / 2,
-				(gs.canvasLength * gs.tileSize) / 2 + 50);
-	}
-}
-
-function runGame(ctx, imgList){
-	var gs = new GameState(imgList);
-	var buildingTimer = 0;
-
-	window.setInterval(function() {
-		var shouldBuild = false;
-		buildingTimer++;
-		if (buildingTimer > gs.buildingTimerLimit){
-			buildingTimer = 0;
-			shouldBuild = true;
-		} else {
-			buildingTimer++;
-		}
-		gameLoop(gs, ctx, shouldBuild);
-	}, 200);
-
-	document.addEventListener("keydown", function(e){
-		console.log(e.key);
-		switch(e.key){
-			case "Up":
-				if (gs.snake.direction !== "DOWN"){
-					gs.snake.direction = "UP";
-				}
-				break;
-			case "Down":
-				if (gs.snake.direction !== "UP"){
-					gs.snake.direction = "DOWN";
-				}
-				break;
-			case "Left":
-				if (gs.snake.direction !== "RIGHT"){
-					gs.snake.direction = "LEFT";
-				}
-				break;
-			case "Right":
-				if (gs.snake.direction !== "LEFT"){
-					gs.snake.direction = "RIGHT";
-				}
-				break;
-			case " ":
-				if (gs.isGameOver){
-					gs = new GameState(imgList);
-					$("#score").text('0');
-				}
-				break;
-			default:
-				break;
-		}
-	}, false);
-}
-
-$(window).load(function(){
-	var canvas = $("#canvas")[0];
-	var ctx = canvas.getContext("2d");
-
-	loadImgs(function (imgList){
-		runGame(ctx, imgList)
-	});
-});
-
-function loadImgs(callbackFn){
-	var imgPaths = ["grass.png","food.png","snake.png"];
-	// Add various building obstacle images
-	for (var i = 0; i < 20; i++){
-		imgPaths[imgPaths.length] = "build" + i + ".png";
-	}
-	var imgList = []
-	var loadCount = 0
-	for (var i = 0; i < imgPaths.length; i++){
-		imgList[i] = new Image();
-		imgList[i].src = imgPaths[i];
-		imgList[i].onload = function (){
-			loadCount++;
-			if (loadCount === imgPaths.length){
-				callbackFn(imgList);
-			}
-		};
 	}
 }
