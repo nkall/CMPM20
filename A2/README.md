@@ -16,3 +16,8 @@ The game code is split between three files:
 The only external library used was jQuery 1.11.2, a free and
 open source library for JavaScript that simplifies some HTML
 scripting.  This file has been included for convenience.
+
+PLEASE NOTE: None of the art assets used in this game are my
+intellectual property.  They were all taken off of the web
+with only minor modifications by myself.  Please let me know
+this is unacceptable practice for future assignments.

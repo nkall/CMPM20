@@ -106,8 +106,8 @@ Snake.prototype.isEating = function (gs){
 Snake.prototype.hasCollided = function (gs){
 	var head = this.tail[0];
 	// Check for edge collision
-	if (head.x < 0 || head.x > gs.canvasWidth ||
-		head.y < 0 || head.y > gs.canvasLength){
+	if (head.x < 0 || head.x >= gs.canvasWidth ||
+		head.y < 0 || head.y >= gs.canvasLength){
 		return true;
 	}
 
