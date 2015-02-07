@@ -71,8 +71,13 @@ Snake.prototype.moveSnake = function (gs, ctx){
 											  this.direction);
 			break;
 	}
+	// End game if collision takes place
+	if (this.hasCollided(gs)){
+		gs.isGameOver = true;
+	}
+
 	// Move food if eating, and chop off tail end otherwise
-	if (this.isEating(gs)){
+	if (this.isEating(gs) && !gs.isGameOver){
 		// Move and redraw food
 		gs.addObject(true);
 		gs.food.draw(gs, ctx);
@@ -86,10 +91,6 @@ Snake.prototype.moveSnake = function (gs, ctx){
 	} else {
 		// Chop off the tail if no food is being eaten
 		this.tail.pop();
-	}
-	// End game if collision takes place
-	if (this.hasCollided(gs)){
-		gs.isGameOver = true;
 	}
 }
 
