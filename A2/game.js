@@ -41,9 +41,9 @@ GameState.prototype.addObject = function (isFood){
 	for (var i = 0; i < 500; i++){
 		if (isFood){
 			// Generate random position
-			var randX = Math.round(Math.random() *
+			var randX = Math.floor(Math.random() *
 									(this.canvasWidth - 2));
-			var randY = Math.round(Math.random() *
+			var randY = Math.floor(Math.random() *
 									(this.canvasLength - 2));
 			// Replace food if no overlaps with the buildings
 			// or any part of the snake
@@ -55,16 +55,16 @@ GameState.prototype.addObject = function (isFood){
 			}
 		} else {
 			// Generate random position
-			var randX = Math.round(Math.random() *
-								(this.canvasWidth + 1)) - 1;
-			var randY = Math.round(Math.random() *
-								(this.canvasLength + 1)) - 1;
+			var randX = Math.floor(Math.random() *
+								(this.canvasWidth + 2)-1);
+			var randY = Math.floor(Math.random() *
+								(this.canvasLength + 2)-1);
 			// Add a new building to buildingList if there's
 			// no overlap with food, buildings, or snake
 			if (!this.isOverlappingObject(randX, randY) &&
 				!this.snake.hasTailInside4x4(randX, randY)){
-				var buildIndex = Math.round(Math.random() * 
-				         	(this.imgList.length - 4)) + 3;
+				var buildIndex = Math.floor(Math.random() * 
+				         	(this.imgList.length - 3)) + 3;
 				this.buildingList[this.buildingList.length] = 
 					new GameObject(randX, randY, 
 									buildIndex, false);

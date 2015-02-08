@@ -89,23 +89,26 @@ function runGame(ctx, imgList){
 	// is not going the opposite direction.  Also, detects
 	// spacebar to start a new game
 	document.addEventListener("keydown", function(e){
-		console.log(e.key);
 		switch(e.key){
+			case "w":
 			case "Up":
 				if (gs.snake.direction !== "DOWN"){
 					gs.snake.direction = "UP";
 				}
 				break;
+			case "s":
 			case "Down":
 				if (gs.snake.direction !== "UP"){
 					gs.snake.direction = "DOWN";
 				}
 				break;
+			case "a":
 			case "Left":
 				if (gs.snake.direction !== "RIGHT"){
 					gs.snake.direction = "LEFT";
 				}
 				break;
+			case "d":
 			case "Right":
 				if (gs.snake.direction !== "LEFT"){
 					gs.snake.direction = "RIGHT";
