@@ -23,6 +23,17 @@ SnakeSegment.prototype.isInside4x4 = function(objectX, objectY){
 	return false;
 }
 
+// Checks if the segment is anywhere near a 4x4, mostly to
+// prevent bogus near-head spawns
+SnakeSegment.prototype.isNear4x4 = function(objectX, objectY){
+	var xDist = this.x - objectX;
+	var yDist = this.y - objectY;
+	if (xDist > -2 && xDist < 3 && yDist > -2 && yDist < 3){
+		return true;
+	}
+	return false;
+}
+
 function Snake(startX, startY){
 	// Possible directions: "UP", "DOWN", "LEFT", "RIGHT"
 	this.direction = "RIGHT";
@@ -33,6 +44,12 @@ function Snake(startX, startY){
 		this.tail[this.tail.length] = new SnakeSegment(startX -
 												 i, startY);
 	}
+}
+
+// Checks if 4x4 space is too close to the snake head, so you
+// don't get unfair building spawns
+Snake.prototype.hasHeadNear4x4 = function (objectX, objectY){
+	return this.tail[0].isNear4x4(objectX, objectY);
 }
 
 // Checks if any of the snake's segments are inside a 4x4 space

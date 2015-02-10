@@ -10,7 +10,6 @@ function GameState(imgList){
 	this.canvasWidth = 64;   // Width of canvas in tiles
 	this.canvasLength = 32;  // Length of canvas in tiles
 
-	// List of 
 	this.buildingList = [];
 	// List of all images used in the game:
 	// 		imgList[0] is the grass
@@ -30,6 +29,7 @@ function GameState(imgList){
 	this.isGameOver = false;
 	this.score = 0;
 
+	this.buildingTimer = 0;
 	this.buildingTimerLimit = 10;
 }
 
@@ -48,7 +48,8 @@ GameState.prototype.addObject = function (isFood){
 			// Replace food if no overlaps with the buildings
 			// or any part of the snake
 			if (!this.isOverlappingObject(randX, randY) &&
-				!this.snake.hasTailInside4x4(randX, randY)){
+				!this.snake.hasTailInside4x4(randX, randY) &&
+				!this.snake.hasHeadNear4x4(randX, randY)){
 				this.food = new GameObject (randX, randY, 1,
 									  		          true);
 				return;

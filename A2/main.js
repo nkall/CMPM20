@@ -66,21 +66,20 @@ function gameLoop(gs, ctx, shouldBuild){
 // detects keypresses
 function runGame(ctx, imgList){
 	var gs = new GameState(imgList);
-	var buildingTimer = 0;
 
 	// Run main game loop at an interval
 	window.setInterval(function() {
 		// Buildings are generated once every x frames, where
 		// x is the number given in gs.buildingTimerLimit
 		var shouldBuild = false;
-		buildingTimer++;
+		gs.buildingTimer++;
 		// If timer is over the limit, reset the timer and
 		// add a new building
-		if (buildingTimer > gs.buildingTimerLimit){
-			buildingTimer = 0;
+		if (gs.buildingTimer > gs.buildingTimerLimit){
+			gs.buildingTimer = 0;
 			shouldBuild = true;
 		} else {
-			buildingTimer++;
+			gs.buildingTimer++;
 		}
 		gameLoop(gs, ctx, shouldBuild);
 	}, 200);
@@ -89,28 +88,36 @@ function runGame(ctx, imgList){
 	// is not going the opposite direction.  Also, detects
 	// spacebar to start a new game
 	document.addEventListener("keydown", function(e){
+		var currHead = gs.snake.tail[0];
+		// 'Neck' kept track of so the snake can't 
+		// immediately turn in on itself and die
+		var currNeck = gs.snake.tail[1];
 		switch(e.keyCode){
 			case 87:
 			case 38:
-				if (gs.snake.direction !== "DOWN"){
+				if (currHead.x !== currNeck.x && 
+					currHead.y - 1 !== currNeck.y){
 					gs.snake.direction = "UP";
 				}
 				break;
 			case 83:
 			case 40:
-				if (gs.snake.direction !== "UP"){
+				if (currHead.x !== currNeck.x && 
+					currHead.y + 1 !== currNeck.y){
 					gs.snake.direction = "DOWN";
 				}
 				break;
 			case 65:
 			case 37:
-				if (gs.snake.direction !== "RIGHT"){
+				if (currHead.x - 1 !== currNeck.x && 
+					currHead.y !== currNeck.y){
 					gs.snake.direction = "LEFT";
 				}
 				break;
 			case 68:
 			case 39:
-				if (gs.snake.direction !== "LEFT"){
+				if (currHead.x + 1 !== currNeck.x && 
+					currHead.y !== currNeck.y){
 					gs.snake.direction = "RIGHT";
 				}
 				break;
